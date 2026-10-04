@@ -58,7 +58,43 @@ public class Tokenizer {
                 i++;
                 continue;
             }
+            if (Character.isDigit(c)) {
+                int start = i;
 
+                while (i < input.length()
+                        && Character.isDigit(input.charAt(i))) {
+                    i++;
+                }
+
+                String number = input.substring(start, i);
+                tokens.add(new Token(TokenType.NUMBER, number, null));
+                continue;
+            }
+            if (c == '\'') {
+                int start = ++i;
+
+                while (i < input.length() && input.charAt(i) != '\'') {
+                    i++;
+                }
+
+                if (i == input.length()) {
+                    throw new IllegalArgumentException("Unterminated string literal");
+                }
+
+                tokens.add(new Token(
+                        TokenType.STRING_LITERAL,
+                        input.substring(start, i),
+                        null
+                ));
+
+                i++; // Move past the closing quote
+                continue;
+            }
+            if (c == '*') {
+                tokens.add(new Token(TokenType.STAR, "*", null));
+                i++;
+                continue;
+            }
             if (Character.isLetter(c)) {
 
                 int start = i;
@@ -85,7 +121,7 @@ public class Tokenizer {
                 continue;
             }
 
-            i++;
+            throw new IllegalArgumentException("Unexpected character: " + c);
         }
 
         tokens.add(
@@ -120,7 +156,12 @@ public class Tokenizer {
 
             case "VARCHAR" ->
                     TokenType.VARCHAR;
-
+            case "INSERT" -> TokenType.INSERT;
+            case "INTO" -> TokenType.INTO;
+            case "VALUES" -> TokenType.VALUES;
+            case "SELECT" -> TokenType.SELECT;
+            case "FROM" -> TokenType.FROM;
+            case "STRING" -> TokenType.STRING;
             default ->
                     TokenType.IDENTIFIER;
         };

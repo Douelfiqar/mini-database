@@ -12,6 +12,10 @@ public class Parser {
 
     public Statement parse(List<Token> tokens) {
 
+        if (tokens == null || tokens.size() < 2) {
+            throw new IllegalArgumentException("Empty SQL command");
+        }
+
         Token firstKeyword = tokens.get(0);
         Token secondKeyword = tokens.get(1);
 
@@ -154,9 +158,9 @@ public class Parser {
             int i = 1;
 
             // Read columns until FROM
-            while (
-                    tokens.get(i).getType() != TokenType.FROM
-            ) {
+            while (i < tokens.size()
+                    && tokens.get(i).getType() != TokenType.FROM
+                    && tokens.get(i).getType() != TokenType.EOF) {
 
                 Token token = tokens.get(i);
 
@@ -175,10 +179,16 @@ public class Parser {
 
                 i++;
             }
-
+            if (i >= tokens.size()
+                    || tokens.get(i).getType() != TokenType.FROM) {
+                throw new IllegalArgumentException("SELECT is missing FROM");
+            }
             // currently pointing at FROM
             i++;
-
+            if (i >= tokens.size()
+                    || tokens.get(i).getType() != TokenType.IDENTIFIER) {
+                throw new IllegalArgumentException("SELECT is missing a table name");
+            }
             // next token should be table name
             statement.setTableName(
                     tokens.get(i).getValue()

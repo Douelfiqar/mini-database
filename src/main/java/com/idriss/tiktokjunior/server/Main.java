@@ -9,10 +9,12 @@ import com.idriss.tiktokjunior.storage.TableStorage;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.List;
 
@@ -65,14 +67,32 @@ public class Main {
 
                                 String sql =
                                         state.command.toString().trim();
+                                String response;
 
-                                List<Token> tokens =
-                                        tokenizer.tokenize(sql);
+                                try {
 
-                                Statement statement =
-                                        parser.parse(tokens);
+                                    List<Token> tokens =
+                                            tokenizer.tokenize(sql);
 
-                                executor.execute(statement);
+                                    Statement statement =
+                                            parser.parse(tokens);
+
+                                    response = String.valueOf(executor.execute(statement));
+                                } catch (IllegalArgumentException
+                                         | IllegalStateException
+                                         | IndexOutOfBoundsException
+                                         | IOException e) {
+                                    response = "ERROR: " + e.getMessage();
+                                }
+
+                                state.pendingWrites.add(
+                                        ByteBuffer.wrap(
+                                                (response + "\n").getBytes(StandardCharsets.UTF_8)
+                                        )
+                                );
+                                selectionKey.interestOps(
+                                        selectionKey.interestOps() | SelectionKey.OP_WRITE
+                                );
 
                                 state.command.setLength(0);
                             } else if(c != '\r') {
@@ -80,6 +100,24 @@ public class Main {
                             }
                         }
                         state.readBuffer.clear();
+                    }
+                } else if (selectionKey.isWritable()) {
+                    SocketChannel client = (SocketChannel) selectionKey.channel();
+                    ClientState state = (ClientState) selectionKey.attachment();
+
+                    while (!state.pendingWrites.isEmpty()) {
+                        ByteBuffer response = state.pendingWrites.peek();
+                        client.write(response);
+
+                        if (response.hasRemaining()) {
+                            break;
+                        }
+
+                        state.pendingWrites.remove();
+                    }
+
+                    if (state.pendingWrites.isEmpty()) {
+                        selectionKey.interestOps(SelectionKey.OP_READ);
                     }
                 }
             }
