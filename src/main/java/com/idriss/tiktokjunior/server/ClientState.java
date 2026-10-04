@@ -11,6 +11,7 @@ import java.util.Queue;
 public class ClientState {
     ByteBuffer readBuffer = ByteBuffer.allocate(8);
     StringBuilder command = new StringBuilder();
+    boolean insideString;
     boolean inTransaction;
     List<Statement> pendingStatements = new ArrayList<>();
     Queue<ByteBuffer> pendingWrites =

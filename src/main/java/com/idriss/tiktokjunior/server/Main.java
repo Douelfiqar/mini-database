@@ -65,10 +65,17 @@ public class Main {
 
                         while (state.readBuffer.hasRemaining()) {
                             char c = (char) state.readBuffer.get();
-                            if (c == '\n') {
+                            if (c == '\'') {
+                                state.insideString = !state.insideString;
+                                state.command.append(c);
+                            } else if (c == ';' && !state.insideString) {
 
                                 String sql =
                                         state.command.toString().trim();
+                                state.command.setLength(0);
+                                if (sql.isEmpty()) {
+                                    continue;
+                                }
                                 String response;
 
                                 try {
@@ -149,8 +156,7 @@ public class Main {
                                         selectionKey.interestOps() | SelectionKey.OP_WRITE
                                 );
 
-                                state.command.setLength(0);
-                            } else if(c != '\r') {
+                            } else {
                                 state.command.append(c);
                             }
                         }
