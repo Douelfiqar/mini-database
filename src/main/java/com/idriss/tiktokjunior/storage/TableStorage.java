@@ -66,7 +66,7 @@ public class TableStorage {
             throws IOException {
 
         Path schemaFile = dataDirectory.resolve(
-                statement.getTableName() + ".schema"
+                statement.getTableName() + ".tbl"
         );
 
         if (!Files.exists(schemaFile)) {
@@ -166,7 +166,7 @@ public class TableStorage {
     ) throws IOException {
 
         Path schemaFile = dataDirectory.resolve(
-                tableName + ".schema"
+                tableName + ".tbl"
         );
 
         List<String> columns = new ArrayList<>();

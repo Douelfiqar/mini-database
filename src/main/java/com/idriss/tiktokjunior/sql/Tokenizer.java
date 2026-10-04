@@ -162,6 +162,9 @@ public class Tokenizer {
             case "SELECT" -> TokenType.SELECT;
             case "FROM" -> TokenType.FROM;
             case "STRING" -> TokenType.STRING;
+            case "BEGIN" -> TokenType.BEGIN;
+            case "COMMIT" -> TokenType.COMMIT;
+            case "ROLLBACK" -> TokenType.ROLLBACK;
             default ->
                     TokenType.IDENTIFIER;
         };

@@ -12,7 +12,7 @@ public class Parser {
 
     public Statement parse(List<Token> tokens) {
 
-        if (tokens == null || tokens.size() < 2) {
+        if (tokens == null) {
             throw new IllegalArgumentException("Empty SQL command");
         }
 

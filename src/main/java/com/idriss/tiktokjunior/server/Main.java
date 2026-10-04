@@ -3,7 +3,9 @@ package com.idriss.tiktokjunior.server;
 import com.idriss.tiktokjunior.execution.Executor;
 import com.idriss.tiktokjunior.sql.Parser;
 import com.idriss.tiktokjunior.sql.Token;
+import com.idriss.tiktokjunior.sql.TokenType;
 import com.idriss.tiktokjunior.sql.Tokenizer;
+import com.idriss.tiktokjunior.statement.SelectStatement;
 import com.idriss.tiktokjunior.statement.Statement;
 import com.idriss.tiktokjunior.storage.TableStorage;
 
@@ -73,11 +75,64 @@ public class Main {
 
                                     List<Token> tokens =
                                             tokenizer.tokenize(sql);
+                                    TokenType commandType = tokens.get(0).getType();
 
-                                    Statement statement =
-                                            parser.parse(tokens);
+                                    if (commandType == TokenType.BEGIN
+                                            || commandType == TokenType.COMMIT
+                                            || commandType == TokenType.ROLLBACK) {
+                                        if (tokens.size() != 2
+                                                || tokens.get(1).getType() != TokenType.EOF) {
+                                            throw new IllegalArgumentException("Expected only " + commandType);
+                                        }
 
-                                    response = String.valueOf(executor.execute(statement));
+                                        if (commandType == TokenType.BEGIN) {
+                                            if (state.inTransaction) {
+                                                throw new IllegalStateException("Transaction already started");
+                                            }
+                                            state.inTransaction = true;
+                                            response = "Transaction started";
+                                        } else if (commandType == TokenType.ROLLBACK) {
+                                            if (!state.inTransaction) {
+                                                throw new IllegalStateException("No active transaction");
+                                            }
+                                            state.pendingStatements.clear();
+                                            state.inTransaction = false;
+                                            response = "Transaction rolled back";
+                                        } else {
+                                            if (!state.inTransaction) {
+                                                throw new IllegalStateException("No active transaction");
+                                            }
+                                            int completed = 0;
+                                            try {
+                                                for (Statement pending : state.pendingStatements) {
+                                                    executor.execute(pending);
+                                                    completed++;
+                                                }
+                                            } catch (IOException | RuntimeException e) {
+                                                state.pendingStatements.clear();
+                                                state.inTransaction = false;
+                                                throw new IllegalStateException(
+                                                        "COMMIT failed after " + completed
+                                                                + " statement(s); earlier changes remain: "
+                                                                + e.getMessage(), e);
+                                            }
+                                            state.pendingStatements.clear();
+                                            state.inTransaction = false;
+                                            response = "Transaction committed";
+                                        }
+                                    } else {
+                                        Statement statement = parser.parse(tokens);
+                                        if (state.inTransaction) {
+                                            if (statement instanceof SelectStatement) {
+                                                throw new IllegalStateException(
+                                                        "SELECT inside a transaction is not supported yet");
+                                            }
+                                            state.pendingStatements.add(statement);
+                                            response = "Statement queued";
+                                        } else {
+                                            response = String.valueOf(executor.execute(statement));
+                                        }
+                                    }
                                 } catch (IllegalArgumentException
                                          | IllegalStateException
                                          | IndexOutOfBoundsException

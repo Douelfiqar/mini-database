@@ -8,6 +8,9 @@ public enum TokenType {
     INTO,
     VALUES,
     SELECT,
+    BEGIN,
+    COMMIT,
+    ROLLBACK,
 
     PRIMARY,
     KEY,
