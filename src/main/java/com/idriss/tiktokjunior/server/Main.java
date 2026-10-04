@@ -109,23 +109,13 @@ public class Main {
                                             if (!state.inTransaction) {
                                                 throw new IllegalStateException("No active transaction");
                                             }
-                                            int completed = 0;
                                             try {
-                                                for (Statement pending : state.pendingStatements) {
-                                                    executor.execute(pending);
-                                                    completed++;
-                                                }
-                                            } catch (IOException | RuntimeException e) {
+                                                executor.executeTransaction(state.pendingStatements);
+                                                response = "Transaction committed";
+                                            } finally {
                                                 state.pendingStatements.clear();
                                                 state.inTransaction = false;
-                                                throw new IllegalStateException(
-                                                        "COMMIT failed after " + completed
-                                                                + " statement(s); earlier changes remain: "
-                                                                + e.getMessage(), e);
                                             }
-                                            state.pendingStatements.clear();
-                                            state.inTransaction = false;
-                                            response = "Transaction committed";
                                         }
                                     } else {
                                         Statement statement = parser.parse(tokens);

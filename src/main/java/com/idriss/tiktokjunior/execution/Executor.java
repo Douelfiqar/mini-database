@@ -7,6 +7,7 @@ import com.idriss.tiktokjunior.statement.Statement;
 import com.idriss.tiktokjunior.storage.TableStorage;
 
 import java.io.IOException;
+import java.util.List;
 
 public class Executor {
 
@@ -14,6 +15,13 @@ public class Executor {
 
     public Executor(TableStorage storage) {
         this.storage = storage;
+    }
+
+    public void executeTransaction(List<Statement> statements) throws IOException {
+        storage.validateTransaction(statements);
+        for (Statement statement : statements) {
+            execute(statement);
+        }
     }
 
     public Object execute(Statement statement)
